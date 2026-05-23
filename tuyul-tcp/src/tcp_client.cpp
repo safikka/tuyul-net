@@ -90,7 +90,7 @@ ErrorCode TcpClient::connect_to(const std::string& host, int port) {
         return ErrorCode::SUCCESS;
     }
 
-    // 1. Resolve host addresses using network domain layout registries
+    // Resolve host addresses using network domain layout registries
     struct addrinfo hints{}, *res = nullptr;
     std::memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET; // Force IPv4 standard structures
@@ -101,7 +101,7 @@ ErrorCode TcpClient::connect_to(const std::string& host, int port) {
         return ErrorCode::SOCKET_CREATION_FAILED;
     }
 
-    // 2. Spawn master client stream channel descriptor socket
+    // Spawn master client stream channel descriptor socket
     m_impl->client_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if (m_impl->client_fd < 0) {
         m_impl->log("ERROR", "Operating system failed to allocate raw client stream descriptor.");
@@ -109,7 +109,7 @@ ErrorCode TcpClient::connect_to(const std::string& host, int port) {
         return ErrorCode::SOCKET_CREATION_FAILED;
     }
 
-    // 3. Initiate raw transport synchronous link attachment connection request
+    // Initiate raw transport synchronous link attachment connection request
     if (connect(m_impl->client_fd, res->ai_addr, res->ai_addrlen) < 0) {
         m_impl->log("ERROR", "Network handshake connection request rejected by remote host interface endpoint.");
         close(m_impl->client_fd);
@@ -127,7 +127,7 @@ ErrorCode TcpClient::connect_to(const std::string& host, int port) {
         return ErrorCode::SET_OPTION_FAILED;
     }
 
-    // 4. Initialize the Linux kernel epoll instance manager
+    // Initialize the Linux kernel epoll instance manager
     m_impl->epoll_fd = epoll_create1(0);
     if (m_impl->epoll_fd < 0) {
         m_impl->log("ERROR", "Linux kernel failed to allocate native client epoll core multiplexer instance.");
@@ -148,18 +148,17 @@ ErrorCode TcpClient::connect_to(const std::string& host, int port) {
     m_impl->is_connected = true;
     m_impl->log("INFO", "Successfully hooked asynchronous transport link channel connection to remote server.");
 
-    // 5. Spawn background processing context thread to manage async inbound traffic ingestion loops
+    // Spawn background processing context thread to manage async inbound traffic ingestion loops
     m_impl->worker_thread = std::thread([this]() {
         std::vector<epoll_event> events(m_impl->options.max_epoll_events);
         std::vector<char> buffer(m_impl->options.network_buffer_size);
 
         while (m_impl->is_connected) {
-#ifdef UNIT_TEST
-            // --- MOCKING BYPASS LAYER FOR TESTS ---
+            #ifdef UNIT_TEST
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             if (!m_impl->is_connected) break;
             continue;
-#else
+            #else
             // Standard asynchronous wait blocks loop cycles
             int active_events = epoll_wait(m_impl->epoll_fd, events.data(), m_impl->options.max_epoll_events, m_impl->options.watchdog_timeout_ms);
             if (active_events < 0) {
@@ -194,7 +193,7 @@ ErrorCode TcpClient::connect_to(const std::string& host, int port) {
                     }
                 }
             }
-#endif
+            #endif
         }
     });
 

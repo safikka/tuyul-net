@@ -11,11 +11,6 @@
 
 namespace tuyul {
 
-// Maximum events epoll can handle per single iteration loop
-constexpr int MAX_EPOLL_EVENTS = 64;
-// Shared internal buffer allocation chunk footprint
-constexpr int NETWORK_BUFFER_SIZE = 4096;
-
 /**
  * @brief Helper utility to enforce non-blocking operational rules on OS descriptors.
  */
@@ -89,14 +84,14 @@ void TcpServer::stop() {
 }
 
 ErrorCode TcpServer::start() {
-    // 1. Spawning master transport socket descriptor (IPv4, TCP stream)
+    // Spawning master transport socket descriptor (IPv4, TCP stream)
     m_impl->server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (m_impl->server_fd < 0) {
         m_impl->log("ERROR", "Failed to allocate master system socket descriptor.");
         return ErrorCode::SOCKET_CREATION_FAILED;
     }
 
-    // 2. Adjust option settings to allow rapid port reclamation on reboots
+    // Adjust option settings to allow rapid port reclamation on reboots
     int opt = 1;
     if (setsockopt(m_impl->server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
         m_impl->log("ERROR", "Failed to configure SO_REUSEADDR socket option.");
@@ -111,7 +106,7 @@ ErrorCode TcpServer::start() {
         return ErrorCode::SET_OPTION_FAILED;
     }
 
-    // 3. Bind socket interface configuration structure
+    // Bind socket interface configuration structure
     sockaddr_in address{};
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY; // Listen on all network local interfaces
@@ -123,14 +118,14 @@ ErrorCode TcpServer::start() {
         return ErrorCode::BIND_FAILED;
     }
 
-    // 4. Transform socket state into listening backlog manager
+    // Transform socket state into listening backlog manager
     if (listen(m_impl->server_fd, SOMAXCONN) < 0) {
         m_impl->log("ERROR", "Failed to transition server socket into operational listening phase.");
         m_impl->cleanup();
         return ErrorCode::LISTEN_FAILED;
     }
 
-    // 5. Initialize the Linux kernel epoll multiplexer engine
+    // Initialize the Linux kernel epoll multiplexer engine
     m_impl->epoll_fd = epoll_create1(0);
     if (m_impl->epoll_fd < 0) {
         m_impl->log("ERROR", "Failed to spawn native Linux epoll orchestration instance.");
@@ -154,7 +149,7 @@ ErrorCode TcpServer::start() {
     std::vector<epoll_event> events(m_impl->options.max_epoll_events);
     std::vector<char> buffer(m_impl->options.network_buffer_size);
 
-    // 6. Primary Orchestration Asynchronous Reactor Event Loop
+    // Primary Orchestration Asynchronous Reactor Event Loop
     while (m_impl->is_running) {
 
         int num_events = 0;
@@ -179,40 +174,45 @@ ErrorCode TcpServer::start() {
             break;
         }
 
+        if (num_events == 0) {
+            continue;
+        }
+
         for (int i = 0; i < num_events; ++i) {
             int current_fd = events[i].data.fd;
 
             if (current_fd == m_impl->server_fd) {
-                // SIKLUS A: Menerima Koneksi Klien Baru
-                sockaddr_in client_addr{};
-                socklen_t client_len = sizeof(client_addr);
-                int client_fd = accept(m_impl->server_fd, reinterpret_cast<struct sockaddr*>(&client_addr), &client_len);
-                
-                if (client_fd < 0) {
-                    if (errno != EAGAIN && errno != EWOULDBLOCK) {
+                while (true) {
+                    sockaddr_in client_addr{};
+                    socklen_t client_len = sizeof(client_addr);
+                    int client_fd = accept(m_impl->server_fd, reinterpret_cast<struct sockaddr*>(&client_addr), &client_len);
+                    
+                    if (client_fd < 0) {
+                        // Safe break when the kernel connection backlog queue is completely empty
+                        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                            break; 
+                        }
                         m_impl->log("WARN", "Encountered anomalous failure during accept processing cycle.");
+                        break;
                     }
-                    continue;
-                }
 
-                if (!make_socket_non_blocking(client_fd)) {
-                    close(client_fd);
-                    continue;
-                }
+                    if (!make_socket_non_blocking(client_fd)) {
+                        close(client_fd);
+                        continue;
+                    }
 
-                // Register client socket descriptor to epoll loop for reading payloads
-                epoll_event client_ev{};
-                client_ev.events = EPOLLIN | EPOLLET; // Edge-Triggered paradigm for performance
-                client_ev.data.fd = client_fd;
-                if (epoll_ctl(m_impl->epoll_fd, EPOLL_CTL_ADD, client_fd, &client_ev) < 0) {
-                    m_impl->log("WARN", "Failed to register new client socket into epoll reactor.");
-                    close(client_fd);
-                } else {
-                    m_impl->log("INFO", "New client connection accepted and hooked into reactor loop.");
+                    // Register individual client socket descriptor to epoll loop for reading payloads
+                    epoll_event client_ev{};
+                    client_ev.events = EPOLLIN | EPOLLET; // Edge-Triggered paradigm for performance
+                    client_ev.data.fd = client_fd;
+                    if (epoll_ctl(m_impl->epoll_fd, EPOLL_CTL_ADD, client_fd, &client_ev) < 0) {
+                        m_impl->log("WARN", "Failed to register new client socket into epoll reactor.");
+                        close(client_fd);
+                    } else {
+                        m_impl->log("INFO", "New client connection accepted and hooked into reactor loop.");
+                    }
                 }
-
             } else {
-                // SIKLUS B: Membaca Paket Data Masuk Dari Klien Lama
                 bool connection_closed = false;
                 
                 // Edge-Triggered requires reading until the descriptor buffer space is totally empty
