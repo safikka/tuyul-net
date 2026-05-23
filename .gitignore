@@ -1,0 +1,30 @@
+# ==============================================================================
+# tuyul-net Project Git Ignore Specifications
+# ==============================================================================
+
+# 1. Build and Automation Artifacts
+build/
+package/
+
+# 2. Code Coverage Report Bundles
+coverage_html/
+*.info
+*.gcda
+*.gcno
+
+# 3. Development Environment Specifics
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 4. OS-specific system files
+.DS_Store
+Thumbs.db
+
+# 5. Offline Vendor Library Build Residuals
+tuyul-lib/**/build/
+tuyul-lib/**/googletest_build/
+tuyul-lib/**/*.o
+tuyul-lib/**/*.a

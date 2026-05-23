@@ -1,12 +1,12 @@
-# tuyul-engine
+# tuyul-net
 
-`tuyul-engine` is a lightweight, low-latency, and high-performance asynchronous networking engine written from scratch in **Modern C++ (C++17)**. 
+`tuyul-net` is a lightweight, low-latency, and high-performance asynchronous networking engine written from scratch in **Modern C++ (C++17)**. 
 
 The main goal here is to build a rock-solid networking foundation that compiles with absolutely *zero external dependencies*. Inspired from `boost` but stripped down to be ultra-modular and easy to grasp.
 
 ---
 
-## 🗺️ System Design
+## System Design
 
 The infrastructure relies on **Event-Driven Reactor Pattern**. To get maximum performance on Linux, directly hook into the kernel's native **`epoll`** mechanism, combined with a strict zero-copy buffer strategy prevent hog RAM or CPU cycles.
 
@@ -25,7 +25,7 @@ flowchart LR
     class app appStyle;
 
     %% --- LAYER 2: ENGINE CORE ---
-    subgraph EngineLayer [" tuyul-engine (Core Framework) "]
+    subgraph EngineLayer [" tuyul-net (Core Framework) "]
         subgraph Roadmap [" Application Layer (Future Roadmap) "]
             http["http_server"]
             ws["websocket"]
@@ -61,4 +61,12 @@ flowchart LR
     tcp -->|epoll_wait| kernel
     udp -->|Datagrams| kernel
 ```
+---
+## Technical Documentation
+
+Dive deep into the architectural specifications and API references for each component:
+*   [TCP Core Engine Interface](docs/tuyul-tcp.md)
+*   [UDP Core Datagram Interface](docs/tuyul-udp.md) (Coming Soon)
+*   [HTTP/1.1 & HTTP/2 Layer Specification](docs/tuyul-http.md) (Coming Soon)
+*   [MQTT Broker Protocol Specification](docs/tuyul-mqtt.md) (Coming Soon)
 ---

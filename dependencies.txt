@@ -1,0 +1,7 @@
+# Required system dependencies for tuyul-net compilation
+# Do not remove core tools: cmake, g++, gcov
+cmake
+g++
+gcov
+lcov
+genhtml
