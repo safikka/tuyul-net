@@ -11,53 +11,54 @@ The main goal here is to build a rock-solid networking foundation that compiles 
 The infrastructure relies on **Event-Driven Reactor Pattern**. To get maximum performance on Linux, directly hook into the kernel's native **`epoll`** mechanism, combined with a strict zero-copy buffer strategy prevent hog RAM or CPU cycles.
 
 ```mermaid
-graph TD
-    %% Styling
-    classDef appClass fill:#f9f,stroke:#333,stroke-width:2px;
-    classDef coreClass fill:#bbf,stroke:#333,stroke-width:2px;
-    classDef roadmapClass fill:#eee,stroke:#333,stroke-width:1px,stroke-dasharray: 5 5;
-    classDef osClass fill:#ddd,stroke:#333,stroke-width:2px;
+flowchart LR
+    %% Theme Color Settings (Muted Tones)
+    classDef appStyle fill:#EBF5FB,stroke:#2E86C1,stroke-width:2px,color:#1B4F72;
+    classDef engineStyle fill:#F4ECF7,stroke:#7D3C98,stroke-width:2px,color:#4A235A;
+    classDef roadmapStyle fill:#F9EBEA,stroke:#A93226,stroke-width:1px,stroke-dasharray: 4 4,color:#78281F;
+    classDef osStyle fill:#EAECEE,stroke:#5D6D7E,stroke-width:2px,color:#2C3E50;
 
-    subgraph tuyul_example [tuyul-example: Living Examples Catalog]
-        app[Your Application / Examples]
+    %% --- LAYER 1: APP DEMO ---
+    subgraph AppLayer [" tuyul-example (App Examples) "]
+        app[" Examples app"]
     end
+    class app appStyle;
 
-    subgraph tuyul_engine [tuyul-engine: Core Framework]
-        subgraph roadmap [Application Layer: Future Roadmap]
-            http[http_server]
-            ws[websocket]
-            mqtt[mqtt]
-            sftp[sftp]
-            grpc[gRPC]
+    %% --- LAYER 2: ENGINE CORE ---
+    subgraph EngineLayer [" tuyul-engine (Core Framework) "]
+        subgraph Roadmap [" Application Layer (Future Roadmap) "]
+            http["http_server"]
+            ws["websocket"]
+            mqtt["mqtt"]
+            sftp["sftp"]
+            grpc["gRPC"]
         end
-        
-        subgraph transport [Transport Layer: Current Focus]
-            tcp[tuyul-tcp]
-            udp[tuyul-udp]
+
+        subgraph Transport [" Transport Layer "]
+            tcp["tuyul-tcp"]
+            udp["tuyul-udp"]
         end
     end
+    class http,ws,mqtt,sftp,grpc roadmapStyle;
+    class tcp,udp engineStyle;
 
-    subgraph os_layer [Operating System Layer]
-        kernel[Linux Kernel: Epoll Engine & Sockets]
+    %% --- LAYER 3: OS KERNEL ---
+    subgraph OsLayer [" Operating System Layer "]
+        kernel["Linux Kernel<br>(Epoll & Native Sockets)"]
     end
+    class kernel osStyle;
 
-    %% Apply Styles
-    class app appClass;
-    class tcp,udp coreClass;
-    class http,ws,mqtt,sftp,grpc roadmapClass;
-    class kernel osClass;
-
-    %% Data Flow
+    %% --- DATA FLOW & CONNECTIONS ---
     app -->|Uses High-Level API| http
-    app -->|Uses Bare TCP Callbacks| tcp
+    app -->|Uses Bare TCP| tcp
 
-    http -->|Processes Raw Buffers| tcp
-    ws -->|Upgrades Connection| http
-    mqtt -->|Decodes Binary PDUs| tcp
-    sftp -->|Handles Secure Streams| tcp
-    grpc -->|Serializes Protobuf| http
+    http -->|Processes Buffers| tcp
+    ws  -->|Upgrades Conn| http
+    mqtt-->|Decodes PDU| tcp
+    sftp-->|Handles Files| tcp
+    grpc-->|Serializes HTTP/2| http
 
-    tcp -->|I/O Multiplexing epoll_wait| kernel
-    udp -->|Connectionless Datagrams| kernel
+    tcp -->|epoll_wait| kernel
+    udp -->|Datagrams| kernel
 ```
 ---
