@@ -5,6 +5,7 @@
 # 1. Define internal source code implementation files
 set(TCP_SOURCES
     src/tcp_server.cpp
+    src/tcp_client.cpp
 )
 
 # 2. Declare the component as an OBJECT Library for optimized internal linking
@@ -29,11 +30,12 @@ if(TARGET gtest_main)
     # Define test suite execution target binary
     add_executable(tuyul-tcp-test
         tests/test_tcp_server.cpp
+        tests/test_tcp_client.cpp
     )
 
     # Inject the UNIT_TEST macro into BOTH the test execution and the object library compiler flags
     target_compile_definitions(tuyul-tcp-test PRIVATE UNIT_TEST)
-    target_compile_definitions(tuyul-tcp-obj PRIVATE UNIT_TEST) # <-- INI KUNCINYA!
+    target_compile_definitions(tuyul-tcp-obj PRIVATE UNIT_TEST)
 
     # Link execution requirements
     target_link_libraries(tuyul-tcp-test 
